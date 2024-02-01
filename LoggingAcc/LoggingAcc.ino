@@ -69,6 +69,7 @@ void error(char *str)
 
 void setup(void)
 {
+  Wire.begin();
   err = ak09918.initialize();
   icm20600.initialize();
   ak09918.switchMode(AK09918_POWER_DOWN);
@@ -76,7 +77,7 @@ void setup(void)
   
   Serial.begin(9600);
   Serial.println();
-  Wire.begin();
+  //Wire.begin();
 
   
   // use debugging LEDs
@@ -129,9 +130,9 @@ void setup(void)
   }
   
 
-  logfile.println("millis,stamp,datetime,light,temp,vcc");    
+  logfile.println("millis,stamp,datetime,accX,accY,accZ");    
 #if ECHO_TO_SERIAL
-  Serial.println("millis,stamp,datetime,light,temp,vcc");
+  Serial.println("millis,stamp,datetime,accX,accY,accZ");
 #endif //ECHO_TO_SERIAL
  
   // If you want to set the aref to something other than 5v
@@ -146,15 +147,18 @@ void setup(void)
     {
         Serial.println("Waiting Sensor");
         delay(100);
+        ak09918.getData(&x, &y, &z);
         err = ak09918.isDataReady();
+        digitalWrite(redLEDpin, HIGH);
     }
 //dont need to calabrate
  //Serial.println("Start figure-8 calibration after 2 seconds.");
-   // delay(2000);
-    //calibrate(10000, &offset_x, &offset_y, &offset_z);
-    Serial.println("");
-}
+    //delay(2000);
+    //calibrate(1000, &offset_x, &offset_y, &offset_z);
+    //Serial.println("");
 
+
+}
 void loop(void)
 {
   DateTime now;
@@ -218,7 +222,7 @@ void loop(void)
   acc_z = icm20600.getAccelerationZ();
     
   
-  logfile.print("A:  ");
+  logfile.print(",  ");
   logfile.print(acc_x);
   logfile.print(",  ");
   logfile.print(acc_y);
@@ -226,13 +230,13 @@ void loop(void)
   logfile.print(acc_z);
   logfile.println(" mg");
 #if ECHO_TO_SERIAL
-  Serial.print("A:  ");
+  Serial.print(",   ");
     Serial.print(acc_x);
     Serial.print(",  ");
     Serial.print(acc_y);
     Serial.print(",  ");
     Serial.print(acc_z);
-    Serial.println(" mg");
+    Serial.println("");
 #endif //ECHO_TO_SERIAL
 
 //****************************************************************************
@@ -268,4 +272,85 @@ void loop(void)
   logfile.flush();
   digitalWrite(redLEDpin, LOW);
   
+}
+
+void calibrate(uint32_t timeout, int32_t *offsetx, int32_t *offsety, int32_t*offsetz)
+{
+  int32_t value_x_min = 0;
+  int32_t value_x_max = 0;
+  int32_t value_y_min = 0;
+  int32_t value_y_max = 0;
+  int32_t value_z_min = 0;
+  int32_t value_z_max = 0;
+  uint32_t timeStart = 0;
+
+  ak09918.getData(&x, &y, &z);
+
+  value_x_min = x;
+  value_x_max = x;
+  value_y_min = y;
+  value_y_max = y;
+  value_z_min = z;
+  value_z_max = z;
+  delay(100);
+
+  timeStart = millis();
+  
+  while((millis() - timeStart) < timeout)
+  {
+    ak09918.getData(&x, &y, &z);
+    
+    /* Update x-Axis max/min value */
+    if(value_x_min > x)
+    {
+      value_x_min = x;
+      Serial.print("Update value_x_min: ");
+      Serial.println(value_x_min);
+
+    } 
+    else if(value_x_max < x)
+    {
+      value_x_max = x;
+      Serial.print("update value_x_max: ");
+      Serial.println(value_x_max);
+    }
+
+    /* Update y-Axis max/min value */
+    if(value_y_min > y)
+    {
+      value_y_min = y;
+      Serial.print("Update value_y_min: ");
+      Serial.println(value_y_min);
+
+    } 
+    else if(value_y_max < y)
+    {
+      value_y_max = y;
+      Serial.print("update value_y_max: ");
+      Serial.println(value_y_max);
+    }
+
+    /* Update z-Axis max/min value */
+    if(value_z_min > z)
+    {
+      value_z_min = z;
+      Serial.print("Update value_z_min: ");
+      Serial.println(value_z_min);
+
+    } 
+    else if(value_z_max < z)
+    {
+      value_z_max = z;
+      Serial.print("update value_z_max: ");
+      Serial.println(value_z_max);
+    }
+    
+    Serial.print(".");
+    delay(100);
+
+  }
+
+  *offsetx = value_x_min + (value_x_max - value_x_min)/2;
+  *offsety = value_y_min + (value_y_max - value_y_min)/2;
+  *offsetz = value_z_min + (value_z_max - value_z_min)/2;
 }
