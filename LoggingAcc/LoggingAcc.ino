@@ -8,13 +8,13 @@
 // Data logger code
 
 // how many milliseconds between grabbing data and logging it. 1000 ms is once a second
-#define LOG_INTERVAL  1000 // mills between entries (reduce to take more/faster data)
+#define LOG_INTERVAL  250 // mills between entries (reduce to take more/faster data)
 
 // how many milliseconds before writing the logged data permanently to disk
 // set it to the LOG_INTERVAL to write each time (safest)
 // set it to 10*LOG_INTERVAL to write all data every 10 datareads, you could lose up to 
 // the last 10 reads if power is lost but it uses less power and is much faster!
-#define SYNC_INTERVAL 1000 // mills between calls to flush() - to write data to the card
+#define SYNC_INTERVAL 10000 // mills between calls to flush() - to write data to the card
 uint32_t syncTime = 0; // time of last sync()
 
 #define ECHO_TO_SERIAL   1 // echo data to serial port
@@ -228,7 +228,7 @@ void loop(void)
   logfile.print(acc_y);
   logfile.print(",  ");
   logfile.print(acc_z);
-  logfile.println(" mg");
+  logfile.println("");
 #if ECHO_TO_SERIAL
   Serial.print(",   ");
     Serial.print(acc_x);
@@ -267,90 +267,14 @@ void loop(void)
   if ((millis() - syncTime) < SYNC_INTERVAL) return;
   syncTime = millis();
   
-  // blink LED to show we are syncing data to the card & updating FAT!
+  // blink RED LED to show we are syncing data to the card & updating FAT!
   digitalWrite(redLEDpin, HIGH);
   logfile.flush();
   digitalWrite(redLEDpin, LOW);
-  
-}
 
-void calibrate(uint32_t timeout, int32_t *offsetx, int32_t *offsety, int32_t*offsetz)
-{
-  int32_t value_x_min = 0;
-  int32_t value_x_max = 0;
-  int32_t value_y_min = 0;
-  int32_t value_y_max = 0;
-  int32_t value_z_min = 0;
-  int32_t value_z_max = 0;
-  uint32_t timeStart = 0;
-
-  ak09918.getData(&x, &y, &z);
-
-  value_x_min = x;
-  value_x_max = x;
-  value_y_min = y;
-  value_y_max = y;
-  value_z_min = z;
-  value_z_max = z;
-  delay(100);
-
-  timeStart = millis();
-  
-  while((millis() - timeStart) < timeout)
-  {
-    ak09918.getData(&x, &y, &z);
-    
-    /* Update x-Axis max/min value */
-    if(value_x_min > x)
-    {
-      value_x_min = x;
-      Serial.print("Update value_x_min: ");
-      Serial.println(value_x_min);
-
-    } 
-    else if(value_x_max < x)
-    {
-      value_x_max = x;
-      Serial.print("update value_x_max: ");
-      Serial.println(value_x_max);
-    }
-
-    /* Update y-Axis max/min value */
-    if(value_y_min > y)
-    {
-      value_y_min = y;
-      Serial.print("Update value_y_min: ");
-      Serial.println(value_y_min);
-
-    } 
-    else if(value_y_max < y)
-    {
-      value_y_max = y;
-      Serial.print("update value_y_max: ");
-      Serial.println(value_y_max);
-    }
-
-    /* Update z-Axis max/min value */
-    if(value_z_min > z)
-    {
-      value_z_min = z;
-      Serial.print("Update value_z_min: ");
-      Serial.println(value_z_min);
-
-    } 
-    else if(value_z_max < z)
-    {
-      value_z_max = z;
-      Serial.print("update value_z_max: ");
-      Serial.println(value_z_max);
-    }
-    
-    Serial.print(".");
-    delay(100);
-
+  if (millis()> 180000){
+    logfile.close();
+    while(1);
   }
-
-  *offsetx = value_x_min + (value_x_max - value_x_min)/2;
-  *offsety = value_y_min + (value_y_max - value_y_min)/2;
-  *offsetz = value_z_min + (value_z_max - value_z_min)/2;
+  
 }
