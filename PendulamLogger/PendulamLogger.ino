@@ -25,19 +25,37 @@ const int chipSelect = 8;  // for the data logging shield, we use a jumper to pi
 const int IMUpower = 19;   //power for the Accelerometer
 const int IMUground = 18;  // ground for the accelerometer
 
-const bool ECHO_TO_SERIAL = 0;  //set to 0 to stop communication over serial line
+const bool ECHO_TO_SERIAL = 1;  //set to 0 to stop communication over serial line
 
 RTC_PCF8523 RTC;  // define the Real Time Clock object
 File logfile;     // define the logging file object
 
-// acceleramter stuff. only using 3 axis of acceleration
+// acceleramter stuff.
 AK09918_err_type_t err;
 int32_t x, y, z;
 AK09918 ak09918;
 ICM20600 icm20600(true);
 int16_t acc_x, acc_y, acc_z;
+int32_t offset_x, offset_y, offset_z;
+double roll, pitch;
+// Find the magnetic declination at your location
+// http://www.magnetic-declination.com/
+double declination_lajolla = +11.0;
+
+int16_t gyroX, gyroY, gyroZ;  // defining gryo varibles not called in example code
+
+
+
+
+
 
 void setup() {
+  // adding hardcoded offset data we got from a few calabrations. We did this to
+  //avoid running a calabration on every startup
+  offset_x = -10;
+  offset_y = -54;
+  offset_z = 0;
+
 
   Serial.begin(9600);
   Serial.println();
@@ -147,6 +165,15 @@ void loop() {
   acc_x = icm20600.getAccelerationX();
   acc_y = icm20600.getAccelerationY();
   acc_z = icm20600.getAccelerationZ();
+  // get gryo
+  gyroX = icm20600.getGyroscopeX();
+  gyroY = icm20600.getGyroscopeY();
+  gyroZ = icm20600.getGyroscopeZ();
+  // get compass
+  ak09918.getData(&x, &y, &z);
+  x = x - offset_x;
+  y = y - offset_y;
+  z = z - offset_z;
   //log acceleration
   logfile.print(",  ");
   logfile.print(acc_x);
@@ -154,7 +181,24 @@ void loop() {
   logfile.print(acc_y);
   logfile.print(",  ");
   logfile.print(acc_z);
+  logfile.print("");
+  //log gyro
+  logfile.print(",  ");
+  logfile.print(gyroX);
+  logfile.print(",  ");
+  logfile.print(gyroY);
+  logfile.print(",  ");
+  logfile.print(gyroZ);
+  logfile.print("");
+  //log compass
+  logfile.print(",  ");
+  logfile.print(x);
+  logfile.print(",  ");
+  logfile.print(y);
+  logfile.print(",  ");
+  logfile.print(z);
   logfile.println("");
+
   if (ECHO_TO_SERIAL == 1) {  //ECHO_TO_SERIAL
     Serial.print(m);          // milliseconds since start
     Serial.print(", ");
@@ -179,6 +223,18 @@ void loop() {
     Serial.print(acc_y);
     Serial.print(",  ");
     Serial.print(acc_z);
+    Serial.print(",   ");
+    Serial.print(gyroX);
+    Serial.print(",  ");
+    Serial.print(gyroY);
+    Serial.print(",  ");
+    Serial.print(gyroZ);
+    Serial.print(",   ");
+    Serial.print(x);
+    Serial.print(",  ");
+    Serial.print(y);
+    Serial.print(",  ");
+    Serial.print(z);
     Serial.println("");
   }
   digitalWrite(greenLEDpin, LOW);  //green led off to show no longer logging
