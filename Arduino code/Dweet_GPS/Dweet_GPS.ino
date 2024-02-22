@@ -67,18 +67,21 @@ void loop() {
   float latitude, longitude, speed_kph, heading, altitude, second;
   if (modem.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude)) {  // Use this line instead if you don't want UTC time
     Serial.println(F("---------------------"));
-    Serial.print(F("Latitude: "));
-    Serial.println(latitude, 6);
-    Serial.print(F("Longitude: "));
-    Serial.println(longitude, 6);
-    myDweet("latidute, longitude");
+    //Serial.print(F("Latitude: "));
+    //Serial.println(latitude, 6);
+    //Serial.print(F("Longitude: "));
+    //Serial.println(longitude, 6);
+    String myLocation = "Latitude: " + String(latitude, 6) + "    Longitude: " +String(longitude, 6);
+    Serial.println(myLocation);
+    myDweet(myLocation);
   }
   else {
    // myDweet("no GPS");
+   Serial.println("no GPS yet");
   }
 }
 
-void myDweet(char text[32]) {
+void myDweet(String text) {
   // Post data to website via 2G or LTE CAT-M/NB-IoT
 
   uint16_t battLevel;
