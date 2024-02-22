@@ -59,14 +59,26 @@ void setup() {
 
   modem.enableGPS(true);   //Turn GPS on
   modem.enableGPRS(true);  // Enable data
-  dweet("network enabled");
+  myDweet("network enabled");
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  delay(10000);
+  float latitude, longitude, speed_kph, heading, altitude, second;
+  if (modem.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude)) {  // Use this line instead if you don't want UTC time
+    Serial.println(F("---------------------"));
+    Serial.print(F("Latitude: "));
+    Serial.println(latitude, 6);
+    Serial.print(F("Longitude: "));
+    Serial.println(longitude, 6);
+    myDweet("latidute, longitude");
+  }
+  else {
+   // myDweet("no GPS");
+  }
 }
 
-void dweet(char text[32]) {
+void myDweet(char text[32]) {
   // Post data to website via 2G or LTE CAT-M/NB-IoT
 
   uint16_t battLevel;
@@ -81,7 +93,7 @@ void dweet(char text[32]) {
   // Use IMEI as device ID for this example
 
   // GET request
-  sprintf(URL, "dweet.io/dweet/for/%s?temp=%s&batt=%i", imei, text, battLevel);  // No need to specify http:// or https://
+  sprintf(URL, "dweet.io/dweet/for/%s?location=%s&batt=%i", imei, text, battLevel);  // No need to specify http:// or https://
 
   modem.postData("GET", URL);
 }
