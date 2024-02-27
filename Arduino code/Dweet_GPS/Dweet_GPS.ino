@@ -11,30 +11,19 @@
 #define RX 11  // Microcontroller TX
 //#define T_ALERT 12 // Connect with solder jumper
 
-// this is a large buffer for replies
-//char replybuffer[255];
 
 #include <SoftwareSerial.h>
 SoftwareSerial modemSS = SoftwareSerial(TX, RX);
-
 SoftwareSerial *modemSerial = &modemSS;
-
 Botletics_modem_LTE modem = Botletics_modem_LTE();
 
-#define samplingRate 30
-
-uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout = 0);
-
+// define varaibles for reading gps
 char imei[16] = { 0 };   // Use this for device ID
 uint16_t battLevel = 0;  // Battery level (percentage)
 float latitude, longitude, speed_kph, heading, altitude, second;
-uint16_t year;
-uint8_t month, day, hour, minute;
 uint8_t counter = 0;
-
 char URL[200];  // Make sure this is long enough for your request URL
-char latBuff[12], longBuff[12], locBuff[50], speedBuff[12],
-  headBuff[12], altBuff[12], tempBuff[12], battBuff[12];
+char latBuff[12], longBuff[12], locBuff[50], speedBuff[12],headBuff[12], altBuff[12], tempBuff[12], battBuff[12];
 
 void setup() {
   pinMode(RST, OUTPUT);
@@ -104,6 +93,7 @@ void loop() {
     counter++;  // Increment counter
     delay(1000);
   }
+  delay(10000);
 }
 
 void moduleSetup() {
@@ -136,8 +126,10 @@ void moduleSetup() {
 }
 bool netStatus() {
   int n = modem.getNetworkStatus();
-  
-  Serial.print(F("Network status ")); Serial.print(n); Serial.print(F(": "));
+
+  Serial.print(F("Network status "));
+  Serial.print(n);
+  Serial.print(F(": "));
   if (n == 0) Serial.println(F("Not registered"));
   if (n == 1) Serial.println(F("Registered (home)"));
   if (n == 2) Serial.println(F("Not registered (searching)"));
