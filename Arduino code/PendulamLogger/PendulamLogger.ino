@@ -112,9 +112,9 @@ void setup() {
       Serial.println("RTC failed");
     }
   }
-  logfile.println("millis,stamp,datetime,accX,accY,accZ");
+  logfile.println("millis,stamp,datetime,accX,accY,accZ,gyroX,gyroY,gyroZ,compX,compY,compZ");
   if (ECHO_TO_SERIAL == 1) {  //ECHO_TO_SERIAL
-    Serial.println("millis,stamp,datetime,accX,accY,accZ");
+    Serial.println("millis,stamp,datetime,accX,accY,accZ,gyroX,gyroY,gyroZ,compX,compY,compZ");
   }
   // IMU axis stuff
   err = ak09918.isDataReady();
@@ -244,7 +244,7 @@ void loop() {
   if ((millis() - syncTime) < SYNC_INTERVAL) return;
   syncTime = millis();
 
-  // blink RED LED to show we are syncing data to the card & updating FAT!
+  // blink RED LED to show we are syncing data to the card & updating!
   digitalWrite(redLEDpin, HIGH);
   logfile.flush();
   digitalWrite(redLEDpin, LOW);
