@@ -10,7 +10,7 @@
 // how many milliseconds between grabbing data and logging it. 1000 ms is once a second
 #define LOG_INTERVAL 250  // mills between entries (reduce to take more/faster data)
 // how many millisecconds you want to log data for. 300000 is five minutes
-#define logDuration 120000
+#define logDuration 20000
 // how many milliseconds before writing the logged data permanently to disk
 #define SYNC_INTERVAL 10000    // mills between calls to flush() - to write data to the card
 uint32_t syncTime = 0;         // time of last sync()
@@ -112,150 +112,146 @@ void setup() {
 }
 
 void loop() {
+
   // create a new file
   DateTime now;  // this just changes DateTime command into now i think
   now = RTC.now();
-  char bufDate[] = "YYxMMxDDxhhxmm";
-  //string stringDate = now.toString(bufDate);
-  String filename = "LOG";
-  filename.concat(now.toString(bufDate));
+  char bufDate[] = "DDxhhxmm";
+  String filename = now.toString(bufDate);
   filename.concat(".csv");
   logfile = SD.open(filename, FILE_WRITE);
-  Serial.println(filename);
   if (!logfile) {
     error("couldnt create file");
   }
   Serial.print("Logging to: ");
   Serial.println(filename);
   logfile.println("millis,stamp,datetime,accX,accY,accZ,gyroX,gyroY,gyroZ,compX,compY,compZ");
+  int TimeOpen = millis();
+  while ((millis() - TimeOpen) < logDuration) {  //write to this file for logDuration
 
-  // only tate another sample if it's been long enough
-  if ((millis() - lastSample) < LOG_INTERVAL) return;
+    // only tate another sample if it's been long enough
+    if ((millis() - lastSample) < LOG_INTERVAL) return;
+    lastSample = millis();            // this sets the time at the start of the sample
+    digitalWrite(greenLEDpin, HIGH);  //turn on green LED so we know we are logging
+    // log milliseconds since starting
+    uint32_t m = millis();
+    logfile.print(m);  // milliseconds since start
+    logfile.print(", ");
+    // fetch the time
+    now = RTC.now();
+    // log time
+    logfile.print(now.unixtime());  // seconds since 1/1/1970
+    logfile.print(", ");
+    logfile.print('"');
+    logfile.print(now.year(), DEC);
+    logfile.print("/");
+    logfile.print(now.month(), DEC);
+    logfile.print("/");
+    logfile.print(now.day(), DEC);
+    logfile.print(" ");
+    logfile.print(now.hour(), DEC);
+    logfile.print(":");
+    logfile.print(now.minute(), DEC);
+    logfile.print(":");
+    logfile.print(now.second(), DEC);
+    logfile.print('"');
+    // get acceleration
+    acc_x = icm20600.getAccelerationX();
+    acc_y = icm20600.getAccelerationY();
+    acc_z = icm20600.getAccelerationZ();
+    // get gryo
+    gyroX = icm20600.getGyroscopeX();
+    gyroY = icm20600.getGyroscopeY();
+    gyroZ = icm20600.getGyroscopeZ();
+    // get compass
+    ak09918.getData(&x, &y, &z);
+    x = x - offset_x;
+    y = y - offset_y;
+    z = z - offset_z;
+    //log acceleration
+    logfile.print(",  ");
+    logfile.print(acc_x);
+    logfile.print(",  ");
+    logfile.print(acc_y);
+    logfile.print(",  ");
+    logfile.print(acc_z);
+    logfile.print("");
+    //log gyro
+    logfile.print(",  ");
+    logfile.print(gyroX);
+    logfile.print(",  ");
+    logfile.print(gyroY);
+    logfile.print(",  ");
+    logfile.print(gyroZ);
+    logfile.print("");
+    //log compass
+    logfile.print(",  ");
+    logfile.print(x);
+    logfile.print(",  ");
+    logfile.print(y);
+    logfile.print(",  ");
+    logfile.print(z);
+    logfile.println("");
 
+    if (ECHO_TO_SERIAL == 1) {  //ECHO_TO_SERIAL
+      Serial.print(m);
+      Serial.print(", ");
+      Serial.print(now.unixtime());
+      Serial.print(", ");
+      Serial.print('"');
+      Serial.print(now.year(), DEC);
+      Serial.print("/");
+      Serial.print(now.month(), DEC);
+      Serial.print("/");
+      Serial.print(now.day(), DEC);
+      Serial.print(" ");
+      Serial.print(now.hour(), DEC);
+      Serial.print(":");
+      Serial.print(now.minute(), DEC);
+      Serial.print(":");
+      Serial.print(now.second(), DEC);
+      Serial.print('"');
+      Serial.print(",   ");
+      Serial.print(acc_x);
+      Serial.print(",  ");
+      Serial.print(acc_y);
+      Serial.print(",  ");
+      Serial.print(acc_z);
+      Serial.print(",   ");
+      Serial.print(gyroX);
+      Serial.print(",  ");
+      Serial.print(gyroY);
+      Serial.print(",  ");
+      Serial.print(gyroZ);
+      Serial.print(",   ");
+      Serial.print(x);
+      Serial.print(",  ");
+      Serial.print(y);
+      Serial.print(",  ");
+      Serial.print(z);
+      Serial.println("");
+    }
+    digitalWrite(greenLEDpin, LOW);  //green led off to show no longer logging
 
-  lastSample = millis();  // this sets the time at the start of the sample
+    // Now we write data to disk! Don't sync too often - requires 2048 bytes of I/O to SD card
+    // which uses a bunch of power and takes time
+    if ((millis() - syncTime) < SYNC_INTERVAL) return;
+    syncTime = millis();
 
-  digitalWrite(greenLEDpin, HIGH);  //turn on green LED so we know we are logging
-
-  // log milliseconds since starting
-  uint32_t m = millis();
-  logfile.print(m);  // milliseconds since start
-  logfile.print(", ");
-  // fetch the time
-  now = RTC.now();
-  // log time
-  logfile.print(now.unixtime());  // seconds since 1/1/1970
-  logfile.print(", ");
-  logfile.print('"');
-  logfile.print(now.year(), DEC);
-  logfile.print("/");
-  logfile.print(now.month(), DEC);
-  logfile.print("/");
-  logfile.print(now.day(), DEC);
-  logfile.print(" ");
-  logfile.print(now.hour(), DEC);
-  logfile.print(":");
-  logfile.print(now.minute(), DEC);
-  logfile.print(":");
-  logfile.print(now.second(), DEC);
-  logfile.print('"');
-  // get acceleration
-  acc_x = icm20600.getAccelerationX();
-  acc_y = icm20600.getAccelerationY();
-  acc_z = icm20600.getAccelerationZ();
-  // get gryo
-  gyroX = icm20600.getGyroscopeX();
-  gyroY = icm20600.getGyroscopeY();
-  gyroZ = icm20600.getGyroscopeZ();
-  // get compass
-  ak09918.getData(&x, &y, &z);
-  x = x - offset_x;
-  y = y - offset_y;
-  z = z - offset_z;
-  //log acceleration
-  logfile.print(",  ");
-  logfile.print(acc_x);
-  logfile.print(",  ");
-  logfile.print(acc_y);
-  logfile.print(",  ");
-  logfile.print(acc_z);
-  logfile.print("");
-  //log gyro
-  logfile.print(",  ");
-  logfile.print(gyroX);
-  logfile.print(",  ");
-  logfile.print(gyroY);
-  logfile.print(",  ");
-  logfile.print(gyroZ);
-  logfile.print("");
-  //log compass
-  logfile.print(",  ");
-  logfile.print(x);
-  logfile.print(",  ");
-  logfile.print(y);
-  logfile.print(",  ");
-  logfile.print(z);
-  logfile.println("");
-
-  if (ECHO_TO_SERIAL == 1) {  //ECHO_TO_SERIAL
-    Serial.print(m);          // milliseconds since start
-    Serial.print(", ");
-    Serial.print(now.unixtime());
-    Serial.print(", ");
-    Serial.print('"');
-    Serial.print(now.year(), DEC);
-    Serial.print("/");
-    Serial.print(now.month(), DEC);
-    Serial.print("/");
-    Serial.print(now.day(), DEC);
-    Serial.print(" ");
-    Serial.print(now.hour(), DEC);
-    Serial.print(":");
-    Serial.print(now.minute(), DEC);
-    Serial.print(":");
-    Serial.print(now.second(), DEC);
-    Serial.print('"');
-    Serial.print(",   ");
-    Serial.print(acc_x);
-    Serial.print(",  ");
-    Serial.print(acc_y);
-    Serial.print(",  ");
-    Serial.print(acc_z);
-    Serial.print(",   ");
-    Serial.print(gyroX);
-    Serial.print(",  ");
-    Serial.print(gyroY);
-    Serial.print(",  ");
-    Serial.print(gyroZ);
-    Serial.print(",   ");
-    Serial.print(x);
-    Serial.print(",  ");
-    Serial.print(y);
-    Serial.print(",  ");
-    Serial.print(z);
-    Serial.println("");
-  }
-  digitalWrite(greenLEDpin, LOW);  //green led off to show no longer logging
-
-  // Now we write data to disk! Don't sync too often - requires 2048 bytes of I/O to SD card
-  // which uses a bunch of power and takes time
-  if ((millis() - syncTime) < SYNC_INTERVAL) return;
-  syncTime = millis();
-
-  // blink RED LED to show we are syncing data to the card & updating!
-  digitalWrite(redLEDpin, HIGH);
-  logfile.flush();
-  digitalWrite(redLEDpin, LOW);
-
-  //this ends the code and closes the file after the set log duration
-  if (millis() > logDuration) {
-    logfile.close();
+    // blink RED LED to show we are syncing data to the card & updating!
     digitalWrite(redLEDpin, HIGH);
-    digitalWrite(greenLEDpin, HIGH);
-    while (1)
-      ;
+    logfile.flush();
+    digitalWrite(redLEDpin, LOW);
   }
+  //This is outside the the log duration loop
+  logfile.close();
+  digitalWrite(redLEDpin, HIGH);
+  digitalWrite(greenLEDpin, HIGH);
+  Serial.println("outside loop");
+  delay(1000);
+  Serial.println("starting again");
 }
+
 
 void error(char *str) {
   Serial.print("error: ");
