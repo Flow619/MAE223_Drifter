@@ -121,7 +121,7 @@ void setup() {
   ak09918.switchMode(AK09918_CONTINUOUS_100HZ);
 
   // see if the card is present and can be initialized:
-
+  SD.begin(chipSelect);
   Serial.println("card initialized.");
 
 
