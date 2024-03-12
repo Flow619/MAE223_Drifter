@@ -11,11 +11,11 @@
 
 
 // how many milliseconds between grabbing data and logging it. 1000 ms is once a second
-#define LOG_INTERVAL 200  // mills between entries (reduce to take more/faster data)
+#define LOG_INTERVAL 125  // mills between entries (reduce to take more/faster data)
 // how many millisecconds you want to log data for. 300000 is five minutes
 #define logDuration 180000
 // how many milliseconds before writing the logged data permanently to disk
-#define SYNC_INTERVAL 10000    // mills between calls to flush() - to write data to the card
+#define SYNC_INTERVAL 30000    // mills between calls to flush() - to write data to the card
 uint32_t syncTime = 0;         // time of last sync()
 unsigned long lastSample = 0;  //time after last sample
 
@@ -37,7 +37,7 @@ Botletics_modem_LTE modem = Botletics_modem_LTE();
 
 
 const bool ECHO_TO_SERIAL = 1;  //set to 0 to stop communication over serial line
-bool connectFlag = 0;
+
 
 RTC_PCF8523 RTC;  // define the Real Time Clock object
 File logfile;     // define the logging file object
@@ -80,7 +80,6 @@ void setup() {
 
   //setup sd card chip select
   pinMode(chipSelect, OUTPUT);
-  pinMode(10, OUTPUT);  //example code says to set pin 10 as an output even if its not used.
 
   //setup debugging LEDs
   pinMode(redLEDpin, OUTPUT);
@@ -284,9 +283,6 @@ void loop() {
   digitalWrite(redLEDpin, HIGH);
   digitalWrite(greenLEDpin, HIGH);
   Serial.println("outside loop");
-  if (connectFlag == false) {
-    moduleSetup();
-  }
 
   if (modem.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude)) {
     if (ECHO_TO_SERIAL == 1) {
@@ -323,7 +319,9 @@ void loop() {
       delay(100);
     }
   }
-
+else {
+  Serial.println("gps not found");
+}
   Serial.println("starting again");
 }
 
@@ -331,7 +329,7 @@ void moduleSetup() {
   // SIM7000 takes about 3s to turn on and SIM7500 takes about 15s
   // Press Arduino reset button if the module is still turning on and the board doesn't find it.
   // When the module is on it should communicate right after pressing reset
-
+ Serial.println("inside module Setup");
   // Software serial:
   modemSS.begin(115200);  // Default SIM7000 shield baud rate
 
@@ -341,13 +339,11 @@ void moduleSetup() {
   modemSS.begin(9600);
   if (!modem.begin(modemSS)) {
     Serial.println(F("Couldn't find modem"));
-    connectFlag = 0;
-    return;  // Don't proceed if it couldn't find the device
   }
   Serial.println(F("Modem is OK"));
   Serial.print(F("Found "));
   Serial.println(F("SIM7000"));
-  connectFlag = 1;
+  
   // Print module IMEI number.
   uint8_t imeiLen = modem.getIMEI(imei);
   if (imeiLen > 0) {
