@@ -11,11 +11,11 @@
 
 
 // how many milliseconds between grabbing data and logging it. 1000 ms is once a second
-#define LOG_INTERVAL 125  // mills between entries (reduce to take more/faster data)
-// how many millisecconds you want to log data for. 300000 is five minutes
+#define LOG_INTERVAL 200  // mills between entries (reduce to take more/faster data)
+// how many millisecconds you want to log data for. 300000 is five minutes 180000 is three min
 #define logDuration 180000
 // how many milliseconds before writing the logged data permanently to disk
-#define SYNC_INTERVAL 30000    // mills between calls to flush() - to write data to the card
+#define SYNC_INTERVAL 10000    // mills between calls to flush() - to write data to the card
 uint32_t syncTime = 0;         // time of last sync()
 unsigned long lastSample = 0;  //time after last sample
 
