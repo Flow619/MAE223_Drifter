@@ -318,10 +318,11 @@ void loop() {
       counter++;  // Increment counter
       delay(100);
     }
+    digitalWrite(redLEDpin, LOW);
+    digitalWrite(greenLEDpin, LOW);
+  } else {
+    Serial.println("gps not found");
   }
-else {
-  Serial.println("gps not found");
-}
   Serial.println("starting again");
 }
 
@@ -329,7 +330,7 @@ void moduleSetup() {
   // SIM7000 takes about 3s to turn on and SIM7500 takes about 15s
   // Press Arduino reset button if the module is still turning on and the board doesn't find it.
   // When the module is on it should communicate right after pressing reset
- Serial.println("inside module Setup");
+  Serial.println("inside module Setup");
   // Software serial:
   modemSS.begin(115200);  // Default SIM7000 shield baud rate
 
@@ -343,7 +344,7 @@ void moduleSetup() {
   Serial.println(F("Modem is OK"));
   Serial.print(F("Found "));
   Serial.println(F("SIM7000"));
-  
+
   // Print module IMEI number.
   uint8_t imeiLen = modem.getIMEI(imei);
   if (imeiLen > 0) {
